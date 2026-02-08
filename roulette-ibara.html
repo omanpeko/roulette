@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8" />
+<title>Neon Roulette</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+<style>
+:root{
+  --neon-main:#9b5cff;
+  --neon-sub:#c9a6ff;
+}
+
+body {
+  margin: 0;
+  background: radial-gradient(circle at top, #111 0%, #000 70%);
+  color: #fff;
+  font-family: "Noto Sans JP", "Segoe UI", sans-serif;
+  display: flex;
+  height: 100vh;
+}
+
+.app {
+  display: grid;
+  grid-template-columns: 360px 1fr;
+  gap: 24px;
+  padding: 24px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-top: 50px;
+}
+
+label {
+  font-size: 14px;
+  opacity: 0.85;
+}
+
+input[type="text"],
+textarea {
+  width: 100%;
+  background: rgba(0,0,0,0.75);
+  color: #fff;
+  border-radius: 10px;
+  padding: 12px;
+  border: 2px solid var(--neon-main);
+  box-shadow:
+    0 0 10px rgba(155,92,255,0.6),
+    inset 0 0 10px rgba(0,0,0,0.6);
+}
+
+textarea { min-height: 180px; }
+
+button {
+  padding: 14px;
+  font-size: 18px;
+  font-weight: 700;
+  color: #fff;
+  background: linear-gradient(135deg, var(--neon-main), var(--neon-sub));
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  box-shadow: 0 0 15px rgba(155,92,255,0.7);
+}
+
+#removeBtn {
+  background: linear-gradient(135deg, #333, #111);
+  box-shadow: 0 0 10px rgba(255,255,255,0.3);
+}
+
+#removedArea {
+  margin-top: 16px;
+}
+
+#removedList {
+  min-height: 60px;
+  padding: 10px;
+  border-radius: 10px;
+  background: rgba(0,0,0,0.6);
+  border: 2px dashed rgba(155,92,255,0.5);
+  box-shadow: inset 0 0 10px rgba(155,92,255,0.3);
+
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.removed-item {
+  padding: 6px 12px;
+  font-size: 14px;
+  border-radius: 999px;
+  background: rgba(155,92,255,0.15);
+  border: 1px solid rgba(155,92,255,0.6);
+  color: #fff;
+  text-shadow: 0 0 6px rgba(155,92,255,0.8);
+}
+
+.stage {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+#titleDisplay {
+  font-size: 32px;
+  font-weight: 700;
+  margin-bottom: 32px;
+  margin-top: -50px;
+  text-shadow:
+    0 0 10px rgba(255,255,255,0.4),
+    0 0 20px rgba(155,92,255,0.8);
+}
+
+.wheel-wrapper {
+  position: relative;
+  width: 520px;
+  height: 520px;
+}
+
+canvas {
+  width: 520px;
+  height: 520px;
+  border-radius: 50%;
+  box-shadow:
+    0 0 0 3px rgba(255,255,255,0.7),
+    0 0 30px rgba(155,92,255,0.6),
+    0 0 80px rgba(155,92,255,0.35);
+}
+
+.pointer {
+  position: absolute;
+  top: -20px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 32px;
+}
+
+.result-box {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.result {
+  padding: 16px 36px;
+  font-size: 40px;
+  font-weight: 800;
+  border-radius: 999px;
+  background: rgba(0,0,0,0.85);
+  border: 2px solid var(--neon-main);
+  box-shadow:
+    0 0 15px rgba(155,92,255,0.9),
+    0 0 40px rgba(155,92,255,0.7);
+  text-shadow:
+    0 0 10px #fff,
+    0 0 26px var(--neon-main);
+  opacity: 0;
+}
+
+.result.show {
+  animation: pop 0.6s cubic-bezier(.2,1.6,.4,1) forwards;
+}
+
+@keyframes pop {
+  0% { transform: scale(0.3); opacity: 0; }
+  60% { transform: scale(1.15); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+</style>
+</head>
+
+<body>
+<div class="app">
+
+<div class="panel">
+  <label>ルーレットタイトル</label>
+  <input type="text" id="titleInput" value="プレゼント抽選会">
+
+  <label>抽選対象（改行区切り）</label>
+  <textarea id="itemsInput">１
+２
+３
+４
+５
+６
+７
+８
+９
+１０
+１１
+１２</textarea>
+
+  <button id="spinBtn">スピン開始</button>
+  <button id="removeBtn">当選者を除外</button>
+
+  <div id="removedArea">
+    <label>除外済み</label>
+    <div id="removedList"></div>
+  </div>
+</div>
+
+<div class="stage">
+  <div id="titleDisplay">プレゼント抽選会</div>
+  <div class="wheel-wrapper">
+    <canvas id="wheel" width="520" height="520"></canvas>
+    <div class="pointer">▼</div>
+    <div class="result-box">
+      <div id="result" class="result"></div>
+    </div>
+  </div>
+</div>
+
+</div>
+
+<audio id="spinSound" preload="auto"
+src="https://github.com/omanpeko/PekoriBot/raw/refs/heads/main/poco/%E3%83%86%E3%82%A3%E3%83%B3%E3%83%91%E3%83%8B%E3%83%AD%E3%83%BC%E3%83%AB.mp3"></audio>
+
+<audio id="decideSound" preload="auto"
+src="https://github.com/omanpeko/PekoriBot/raw/refs/heads/main/poco/%E6%B1%BA%E5%AE%9A%E3%83%9C%E3%82%BF%E3%83%B3%E3%82%92%E6%8A%BC%E3%81%9953.mp3"></audio>
+
+<script>
+const SPIN_TIME_MS = 6000;
+
+const canvas = document.getElementById("wheel");
+const ctx = canvas.getContext("2d");
+const itemsInput = document.getElementById("itemsInput");
+const spinBtn = document.getElementById("spinBtn");
+const removeBtn = document.getElementById("removeBtn");
+const removedListEl = document.getElementById("removedList");
+const titleInput = document.getElementById("titleInput");
+const titleDisplay = document.getElementById("titleDisplay");
+const resultEl = document.getElementById("result");
+const spinSound = document.getElementById("spinSound");
+const decideSound = document.getElementById("decideSound");
+
+let angle = 0;
+let spinning = false;
+let lastResult = null;
+
+function getFontSize(n){
+  if(n<=12) return 20;
+  if(n<=17) return 18;
+  if(n<=22) return 16;
+  if(n<=27) return 14;
+  return 12;
+}
+
+function drawWheel(items) {
+  const size = canvas.width;
+  const center = size / 2;
+  const radius = center - 10;
+  const sliceAngle = Math.PI * 2 / items.length;
+
+  const fontSize = getFontSize(items.length);
+  const textRadius = radius * 0.72;
+
+  const SLICE_COLORS = [
+    ["#353535", "#1a1a1a"],
+    ["#252525", "#111111"],
+    ["#2e2e2e", "#151515"]
+  ];
+
+  ctx.clearRect(0, 0, size, size);
+
+  items.forEach((text, i) => {
+    const start = angle + sliceAngle * i;
+    const end = start + sliceAngle;
+    const [innerCol, outerCol] = SLICE_COLORS[i % 3];
+
+    const grad = ctx.createRadialGradient(
+      center, center, 0,
+      center, center, radius
+    );
+    grad.addColorStop(0, innerCol);
+    grad.addColorStop(1, outerCol);
+
+    ctx.beginPath();
+    ctx.moveTo(center, center);
+    ctx.arc(center, center, radius, start, end);
+    ctx.closePath();
+    ctx.fillStyle = grad;
+    ctx.fill();
+
+    ctx.save();
+    ctx.translate(center, center);
+    ctx.rotate(start + sliceAngle / 2);
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.font = `bold ${fontSize}px Noto Sans JP`;
+    ctx.fillStyle = "#ffffff";
+    ctx.shadowColor = "rgba(155,92,255,0.8)";
+    ctx.shadowBlur = 8;
+    ctx.fillText(text, textRadius, 0);
+    ctx.restore();
+  });
+}
+
+function spin(){
+  if(spinning) return;
+  const items = itemsInput.value.split("\n").map(v=>v.trim()).filter(Boolean);
+  if(items.length<2) return;
+
+  spinning=true;
+  resultEl.classList.remove("show");
+  lastResult=null;
+
+  spinSound.currentTime=0;
+  spinSound.play();
+
+  const start=performance.now();
+  const baseSpeed=Math.random()*0.8+2.0;
+
+  function animate(now){
+    const t=Math.min((now-start)/SPIN_TIME_MS,1);
+    const ease=1-Math.pow(1-t,3);
+    angle+=baseSpeed*(1-ease);
+    drawWheel(items);
+
+    if(t<1){
+      requestAnimationFrame(animate);
+    }else{
+      spinSound.pause();
+      decideSound.play();
+
+      const slice=Math.PI*2/items.length;
+      const idx=Math.floor(((Math.PI*1.5-angle)%(Math.PI*2)+Math.PI*2)/slice);
+      lastResult=items[idx];
+      resultEl.textContent=lastResult;
+      resultEl.classList.add("show");
+      spinning=false;
+    }
+  }
+  requestAnimationFrame(animate);
+}
+
+spinBtn.onclick=spin;
+
+removeBtn.onclick=()=>{
+  if(!lastResult) return;
+  const tag=document.createElement("div");
+  tag.className="removed-item";
+  tag.textContent=lastResult;
+  removedListEl.appendChild(tag);
+
+  const list=itemsInput.value.split("\n").filter(v=>v.trim()!==lastResult);
+  itemsInput.value=list.join("\n");
+  lastResult=null;
+  resultEl.classList.remove("show");
+  drawWheel(list);
+};
+
+titleInput.oninput=()=>titleDisplay.textContent=titleInput.value;
+itemsInput.oninput=()=>!spinning&&drawWheel(itemsInput.value.split("\n").filter(Boolean));
+drawWheel(itemsInput.value.split("\n").filter(Boolean));
+</script>
+</body>
+</html>
